@@ -69,6 +69,7 @@ public class SamplingService implements BootService {
             this.resetSamplingFactor();
             ScheduledExecutorService service = Executors
                 .newSingleThreadScheduledExecutor(new DefaultNamedThreadFactory("SamplingService"));
+            // 每3s调用一次 resetSamplingFactor() 重置计数器
             scheduledFuture = service.scheduleAtFixedRate(new RunnableWithExceptionProtection(new Runnable() {
                 @Override
                 public void run() {

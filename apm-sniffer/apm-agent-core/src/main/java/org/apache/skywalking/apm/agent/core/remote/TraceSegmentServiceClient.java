@@ -54,6 +54,9 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
     private volatile TraceSegmentServiceGrpc.TraceSegmentServiceStub serviceStub;
     private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;
 
+    /**
+     将自己添加到 GRPCChannelManager 的监听器中
+     */
     @Override
     public void prepare() throws Throwable {
         ServiceManager.INSTANCE.findService(GRPCChannelManager.class).addChannelListener(this);
@@ -64,8 +67,10 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
         lastLogTime = System.currentTimeMillis();
         segmentUplinkedCounter = 0;
         segmentAbandonedCounter = 0;
+        // 创建 DataCarrier，方法内部会创建 Channels、Buffer等
         carrier = new DataCarrier<TraceSegment>(CHANNEL_SIZE, BUFFER_SIZE);
         carrier.setBufferStrategy(BufferStrategy.IF_POSSIBLE);
+        // 给 DataCarrier 设置消费者，方法内部会创建ConsumerPool、ConsumerThread等
         carrier.consume(this, 1);
     }
 
@@ -87,7 +92,9 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
     @Override
     public void consume(List<TraceSegment> data) {
         if (CONNECTED.equals(status)) {
+            // 创建 GRPCStreamServiceStatus 对象
             final GRPCStreamServiceStatus status = new GRPCStreamServiceStatus(false);
+            // 创建 StreamObserver 对象
             StreamObserver<UpstreamSegment> upstreamSegmentStreamObserver = serviceStub.collect(new StreamObserver<Downstream>() {
                 @Override
                 public void onNext(Downstream downstream) {
@@ -109,19 +116,25 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
                 }
             });
 
+            // 逐条非阻塞发送 TraceSegment 请求
             for (TraceSegment segment : data) {
                 try {
+                    // 将 TraceSegment 转换成 UpstreamSegment 对象，用于 gRPC 传输
                     UpstreamSegment upstreamSegment = segment.transform();
                     upstreamSegmentStreamObserver.onNext(upstreamSegment);
                 } catch (Throwable t) {
                     logger.error(t, "Transform and send UpstreamSegment to collector fail.");
                 }
             }
+            // 标记全部请求发送完成
             upstreamSegmentStreamObserver.onCompleted();
 
+            // 等待 Collector 处理完成
             status.wait4Finish();
+            // 记录数量到 segmentAbandonedCounter
             segmentUplinkedCounter += data.size();
         } else {
+            // 记录数量到 segmentAbandonedCounter
             segmentAbandonedCounter += data.size();
         }
 

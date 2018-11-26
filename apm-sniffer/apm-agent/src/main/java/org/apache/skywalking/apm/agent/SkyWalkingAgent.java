@@ -57,8 +57,10 @@ public class SkyWalkingAgent {
     public static void premain(String agentArgs, Instrumentation instrumentation) throws PluginException {
         final PluginFinder pluginFinder;
         try {
+            // 初始化配置
             SnifferConfigInitializer.initialize(agentArgs);
 
+            // 初始化插件
             pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins());
 
         } catch (Exception e) {
@@ -86,6 +88,7 @@ public class SkyWalkingAgent {
             .installOn(instrumentation);
 
         try {
+            // 初始化服务管理
             ServiceManager.INSTANCE.boot();
         } catch (Exception e) {
             logger.error(e, "Skywalking agent boot failure.");

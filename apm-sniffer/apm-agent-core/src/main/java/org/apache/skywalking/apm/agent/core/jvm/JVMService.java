@@ -59,6 +59,9 @@ public class JVMService implements BootService, Runnable {
     private volatile ScheduledFuture<?> sendMetricFuture;
     private Sender sender;
 
+    /**
+     将 sender 添加到 GRPCChannelManager 的监听器中
+     */
     @Override
     public void prepare() throws Throwable {
         queue = new LinkedBlockingQueue(Config.Jvm.BUFFER_SIZE);

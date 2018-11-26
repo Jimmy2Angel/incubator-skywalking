@@ -45,6 +45,11 @@ public class ContextManagerExtendService implements BootService {
 
     }
 
+    /**
+     * 添加到 TracingContext 和 IgnoredTracerContext 各自的监听器集合中
+     *
+     * @param manager contextManager
+     */
     public void registerListeners(ContextManager manager) {
         TracingContext.ListenerManager.add(manager);
         IgnoredTracerContext.ListenerManager.add(manager);

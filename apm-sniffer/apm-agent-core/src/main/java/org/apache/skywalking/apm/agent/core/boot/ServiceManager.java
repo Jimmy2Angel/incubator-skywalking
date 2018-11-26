@@ -59,15 +59,29 @@ public enum ServiceManager {
         }
     }
 
+    /**
+     * 加载所有的 BootService
+     * {@link org.apache.skywalking.apm.agent.core.remote.TraceSegmentServiceClient}
+     * {@link org.apache.skywalking.apm.agent.core.context.ContextManager}
+     * {@link org.apache.skywalking.apm.agent.core.sampling.SamplingService}
+     * {@link org.apache.skywalking.apm.agent.core.remote.GRPCChannelManager}
+     * {@link org.apache.skywalking.apm.agent.core.jvm.JVMService}
+     * {@link org.apache.skywalking.apm.agent.core.remote.AppAndServiceRegisterClient}
+     * {@link org.apache.skywalking.apm.agent.core.context.ContextManagerExtendService}
+     *
+     * @return bootedServices
+     */
     private Map<Class, BootService> loadAllServices() {
         Map<Class, BootService> bootedServices = new LinkedHashMap<Class, BootService>();
         List<BootService> allServices = new LinkedList<BootService>();
+        // 加载所有的 bootService
         load(allServices);
         Iterator<BootService> serviceIterator = allServices.iterator();
         while (serviceIterator.hasNext()) {
             BootService bootService = serviceIterator.next();
 
             Class<? extends BootService> bootServiceClass = bootService.getClass();
+            // 该 bootService 上有 DefaultImplementor 注解则添加
             boolean isDefaultImplementor = bootServiceClass.isAnnotationPresent(DefaultImplementor.class);
             if (isDefaultImplementor) {
                 if (!bootedServices.containsKey(bootServiceClass)) {
@@ -77,6 +91,7 @@ public enum ServiceManager {
                 }
             } else {
                 OverrideImplementor overrideImplementor = bootServiceClass.getAnnotation(OverrideImplementor.class);
+                // 该 bootService 上没有 DefaultImplementor 注解但是也没有 OverrideImplementor 注解，也添加
                 if (overrideImplementor == null) {
                     if (!bootedServices.containsKey(bootServiceClass)) {
                         bootedServices.put(bootServiceClass, bootService);
@@ -84,6 +99,8 @@ public enum ServiceManager {
                         throw new ServiceConflictException("Duplicate service define for :" + bootServiceClass);
                     }
                 } else {
+                    // 该 bootService 上没有 DefaultImplementor 注解，有 OverrideImplementor 注解
+                    // 如果 OverrideImplementor 注解的 value 表明的 bootService 上有 DefaultImplementor 注解，也添加
                     Class<? extends BootService> targetService = overrideImplementor.value();
                     if (bootedServices.containsKey(targetService)) {
                         boolean presentDefault = bootedServices.get(targetService).getClass().isAnnotationPresent(DefaultImplementor.class);

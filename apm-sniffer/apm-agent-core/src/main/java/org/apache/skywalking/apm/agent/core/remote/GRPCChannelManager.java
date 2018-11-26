@@ -56,6 +56,11 @@ public class GRPCChannelManager implements BootService, Runnable {
 
     }
 
+    /**
+     * 创建一个 ScheduledFuture
+     * this 的 run 方法每 30s 执行一次
+     * @throws Throwable
+     */
     @Override
     public void boot() throws Throwable {
         if (Config.Collector.BACKEND_SERVICE.trim().length() == 0) {
@@ -95,10 +100,12 @@ public class GRPCChannelManager implements BootService, Runnable {
             if (grpcServers.size() > 0) {
                 String server = "";
                 try {
+                    // 选取一个服务器
                     int index = Math.abs(random.nextInt()) % grpcServers.size();
                     server = grpcServers.get(index);
                     String[] ipAndPort = server.split(":");
 
+                    // 根据 ip 和 port 创建一个 GRPCChannel
                     managedChannel = GRPCChannel.newBuilder(ipAndPort[0], Integer.parseInt(ipAndPort[1]))
                         .addManagedChannelBuilder(new StandardChannelBuilder())
                         .addManagedChannelBuilder(new TLSChannelBuilder())
@@ -107,8 +114,10 @@ public class GRPCChannelManager implements BootService, Runnable {
 
                     if (!managedChannel.isShutdown() && !managedChannel.isTerminated()) {
                         reconnect = false;
+                        // 通知所有监听器listener： GRPCChannel 连接了
                         notify(GRPCChannelStatus.CONNECTED);
                     } else {
+                        // 通知所有监听器listener： GRPCChannel 失去连接了
                         notify(GRPCChannelStatus.DISCONNECT);
                     }
                     return;
@@ -142,6 +151,7 @@ public class GRPCChannelManager implements BootService, Runnable {
     }
 
     private void notify(GRPCChannelStatus status) {
+        // 已知的 listener 有 AppAndServiceRegisterClient、TraceSegmentServiceClient、JVMService.Send
         for (GRPCChannelListener listener : listeners) {
             try {
                 listener.statusChanged(status);

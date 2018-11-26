@@ -62,15 +62,19 @@ public class SnifferConfigInitializer {
         InputStreamReader configFileStream;
 
         try {
+            // 读取配置文件，默认配置文件 /config/agent.config
             configFileStream = loadConfig();
             Properties properties = new Properties();
+            // 加载配置文件
             properties.load(configFileStream);
+            // 用配置文件内容初始化 Config 类
             ConfigInitializer.initialize(properties, Config.class);
         } catch (Exception e) {
             logger.error(e, "Failed to read the config file, skywalking is going to run in default config.");
         }
 
         try {
+            // 用系统环境变量去覆盖配置
             overrideConfigBySystemEnv();
         } catch (Exception e) {
             logger.error(e, "Failed to read the system env.");
@@ -81,6 +85,7 @@ public class SnifferConfigInitializer {
                 agentOptions = agentOptions.trim();
                 logger.info("Agent options is {}.", agentOptions);
 
+                // 用 agentOptions 去覆盖配置
                 overrideConfigByAgentOptions(agentOptions);
             } catch (Exception e) {
                 logger.error(e, "Failed to parse the agent options, val is {}.", agentOptions);

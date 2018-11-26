@@ -33,6 +33,9 @@ public class GRPCChannel {
      * origin channel
      */
     private final ManagedChannel originChannel;
+    /**
+     * 带装饰的 channel
+     */
     private final Channel channelWithDecorators;
 
     private GRPCChannel(String host, int port, List<ChannelBuilder> channelBuilders,
@@ -43,6 +46,7 @@ public class GRPCChannel {
             channelBuilder = builder.build(channelBuilder);
         }
 
+        // ManagedChannelOrphanWrapper
         this.originChannel = channelBuilder.build();
 
         Channel channel = originChannel;
