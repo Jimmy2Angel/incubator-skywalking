@@ -29,12 +29,28 @@ class BootstrapFlow {
     private static final Logger logger = LoggerFactory.getLogger(BootstrapFlow.class);
 
     private Map<String, ModuleDefine> loadedModules;
+
+    /**
+     * 保存 ModuleProvider 的启动顺序
+     * {@link org.apache.skywalking.oap.server.cluster.plugin.standalone.ClusterModuleStandaloneProvider}
+     * {@link org.apache.skywalking.oap.server.core.CoreModuleProvider}
+     * {@link org.apache.skywalking.oap.query.graphql.GraphQLQueryProvider}
+     * {@link org.apache.skywalking.aop.server.receiver.mesh.MeshReceiverProvider}
+     * {@link org.apache.skywalking.oap.server.core.alarm.provider.AlarmModuleProvider}
+     * {@link org.apache.skywalking.oap.server.storage.plugin.jdbc.h2.H2StorageProvider}
+     * {@link org.apache.skywalking.oap.server.receiver.trace.provider.TraceModuleProvide}
+     * {@link org.apache.skywalking.oap.server.receiver.istio.telemetry.provider.IstioTelemetryReceiverProvider}
+     * {@link org.apache.skywalking.oap.server.receiver.jvm.provider.JVMModuleProvider}
+     * {@link org.apache.skywalking.oap.server.receiver.register.provider.RegisterModuleProvider}
+     * {@link org.apache.skywalking.oap.server.receiver.zipkin.ZipkinReceiverProvider}
+     */
     private List<ModuleProvider> startupSequence;
 
     BootstrapFlow(Map<String, ModuleDefine> loadedModules) throws CycleDependencyException {
         this.loadedModules = loadedModules;
         startupSequence = new LinkedList<>();
 
+        // 获得 ModuleProvider 启动顺序
         makeSequence();
     }
 
@@ -42,6 +58,7 @@ class BootstrapFlow {
     void start(
         ModuleManager moduleManager) throws ModuleNotFoundException, ServiceNotProvidedException, ModuleStartException {
         for (ModuleProvider provider : startupSequence) {
+            // 校验依赖的 Module 是否都已经存在
             String[] requiredModules = provider.requiredModules();
             if (requiredModules != null) {
                 for (String module : requiredModules) {
@@ -52,8 +69,10 @@ class BootstrapFlow {
                 }
             }
             logger.info("start the provider {} in {} module.", provider.name(), provider.getModuleName());
+            // 校验 ModuleProvider 包含的 Service 们都创建成功。(Service 会在 moduleProvider.prepare 方法中创建)
             provider.requiredCheck(provider.getModule().services());
 
+            // 执行 ModuleProvider 启动阶段逻辑
             provider.start();
         }
     }

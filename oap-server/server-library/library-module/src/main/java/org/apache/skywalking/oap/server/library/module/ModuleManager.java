@@ -43,11 +43,14 @@ public class ModuleManager implements ModuleDefineHolder {
                 if (moduleName.equals(module.name())) {
                     ModuleDefine newInstance;
                     try {
+                        // 创建组件定义
                         newInstance = module.getClass().newInstance();
                     } catch (InstantiationException | IllegalAccessException e) {
                         throw new ModuleNotFoundException(e);
                     }
+                    // 各个组件做准备工作
                     newInstance.prepare(this, applicationConfiguration.getModuleConfiguration(moduleName));
+                    // 保存各个组件到变量 loadedModules
                     loadedModules.put(moduleName, newInstance);
                     moduleList.remove(moduleName);
                 }
@@ -60,6 +63,7 @@ public class ModuleManager implements ModuleDefineHolder {
             throw new ModuleNotFoundException(moduleList.toString() + " missing.");
         }
 
+        // 创建组件启动流程类，会计算 ModuleProvider 启动顺序
         BootstrapFlow bootstrapFlow = new BootstrapFlow(loadedModules);
 
         bootstrapFlow.start(this);

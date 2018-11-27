@@ -62,6 +62,7 @@ public abstract class ModuleDefine implements ModuleProviderHolder {
         ApplicationConfiguration.ModuleConfiguration configuration) throws ProviderNotFoundException, ServiceNotProvidedException, ModuleConfigException, ModuleStartException {
         ServiceLoader<ModuleProvider> moduleProviderLoader = ServiceLoader.load(ModuleProvider.class);
         boolean providerExist = false;
+        // 遍历所有 ModuleProvider 实现类的实例数组，创建在配置中的 ModuleProvider 实现类的实例
         for (ModuleProvider provider : moduleProviderLoader) {
             if (!configuration.has(provider.name())) {
                 continue;
@@ -92,6 +93,7 @@ public abstract class ModuleDefine implements ModuleProviderHolder {
             } catch (IllegalAccessException e) {
                 throw new ModuleConfigException(this.name() + " module config transport to config bean failure.", e);
             }
+            // 执行 ModuleProvider 准备阶段的逻辑。会创建对应的 Service
             moduleProvider.prepare();
         }
     }

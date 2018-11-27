@@ -28,8 +28,15 @@ import java.util.Properties;
  * @author wu-sheng, peng-yongsheng
  */
 public class ApplicationConfiguration {
+    /**
+     * moduleName -> ModuleConfiguration 对应关系集合
+     */
     private HashMap<String, ModuleConfiguration> modules = new HashMap<>();
 
+    /**
+     * 获取 moduleName 数组
+     * @return moduleName 数组
+     */
     public String[] moduleList() {
         return modules.keySet().toArray(new String[0]);
     }
@@ -52,6 +59,10 @@ public class ApplicationConfiguration {
      * The configurations about a certain module.
      */
     public class ModuleConfiguration {
+
+        /**
+         * moduleProviderName -> ProviderConfiguration 对应关系集合
+         */
         private HashMap<String, ProviderConfiguration> providers = new HashMap<>();
 
         private ModuleConfiguration() {
