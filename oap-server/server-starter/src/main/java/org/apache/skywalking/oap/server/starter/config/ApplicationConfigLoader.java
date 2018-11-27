@@ -47,7 +47,9 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
 
     @Override public ApplicationConfiguration load() throws ConfigFileNotFoundException {
         ApplicationConfiguration configuration = new ApplicationConfiguration();
+        // 加载配置
         this.loadConfig(configuration);
+        // 用系统变量覆盖配置
         this.overrideConfigBySystemEnv(configuration);
         return configuration;
     }
@@ -55,13 +57,37 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
     @SuppressWarnings("unchecked")
     private void loadConfig(ApplicationConfiguration configuration) throws ConfigFileNotFoundException {
         try {
+            /*
+             * 读取 application.yml 文件，以存储组件为例
+             * storage:
+             *   elasticsearch:
+             *     clusterName: elasticsearch
+             *     clusterNodes: localhost:9200
+             *     indexShardsNumber: 2
+             *     indexReplicasNumber: 0
+             *     # Batch process setting, refer to https://www.elastic.co/guide/en/elasticsearch/client/java-api/5.5/java-docs-bulk-processor.html
+             *     bulkActions: 2000 # Execute the bulk every 2000 requests
+             *     bulkSize: 20 # flush the bulk every 20mb
+             *     flushInterval: 10 # flush the bulk every 10 seconds whatever the number of requests
+             *     concurrentRequests: 2 # the number of concurrent requests
+             *   h2:
+             *     driver: org.h2.jdbcx.JdbcDataSource
+             *     url: jdbc:h2:mem:skywalking-oap-db
+             *     user: sa
+             *
+             *  storage 为一个 moduleName
+             *  elasticsearch、h2 为两个 module provider name
+             */
             Reader applicationReader = ResourceUtils.read("application.yml");
             Map<String, Map<String, Map<String, ?>>> moduleConfig = yaml.loadAs(applicationReader, Map.class);
             if (CollectionUtils.isNotEmpty(moduleConfig)) {
+                // 循环 模块配置映射 ，添加 模块配置对象 到 Collector 配置对象
                 moduleConfig.forEach((moduleName, providerConfig) -> {
                     if (providerConfig.size() > 0) {
                         logger.info("Get a module define from application.yml, module name: {}", moduleName);
+                        // 创建 模块配置对象
                         ApplicationConfiguration.ModuleConfiguration moduleConfiguration = configuration.addModule(moduleName);
+                        // 循环 模块服务提供者配置映射
                         providerConfig.forEach((name, propertiesConfig) -> {
                             logger.info("Get a provider define belong to {} module, provider name: {}", moduleName, name);
                             Properties properties = new Properties();
