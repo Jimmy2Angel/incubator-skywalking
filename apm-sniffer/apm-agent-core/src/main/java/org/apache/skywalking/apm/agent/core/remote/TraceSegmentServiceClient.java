@@ -89,6 +89,10 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
 
     }
 
+    /**
+     * 将消费到的 TraceSegment 对象序列化，然后通过 gRPC 请求发送到后端 OAP 集群
+     * @param data
+     */
     @Override
     public void consume(List<TraceSegment> data) {
         if (CONNECTED.equals(status)) {
@@ -120,6 +124,7 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
             for (TraceSegment segment : data) {
                 try {
                     // 将 TraceSegment 转换成 UpstreamSegment 对象，用于 gRPC 传输
+                    // UpstreamSegment 结构体包含了 Trace ID 以及 TraceSegment 序列化之后的字节数组
                     UpstreamSegment upstreamSegment = segment.transform();
                     upstreamSegmentStreamObserver.onNext(upstreamSegment);
                 } catch (Throwable t) {
@@ -129,12 +134,12 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
             // 标记全部请求发送完成
             upstreamSegmentStreamObserver.onCompleted();
 
-            // 等待 Collector 处理完成
+            // 等待全部TraceSegment数据发送结束
             status.wait4Finish();
             // 记录数量到 segmentAbandonedCounter
             segmentUplinkedCounter += data.size();
         } else {
-            // 记录数量到 segmentAbandonedCounter
+            // 网络连接断开时，只进行简单统计，数据将被直接抛弃
             segmentAbandonedCounter += data.size();
         }
 
@@ -171,6 +176,8 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
         if (traceSegment.isIgnore()) {
             return;
         }
+        // 收集 traceSegment 通过 DataCarrier 然后发送到后端 OAP
+        // 同时 TraceSegmentServiceClient 自身实现了 IConsumer 接口，封装了消费 Channels 中数据的逻辑
         if (!carrier.produce(traceSegment)) {
             if (logger.isDebugEnable()) {
                 logger.debug("One trace segment has been abandoned, cause by buffer is full.");

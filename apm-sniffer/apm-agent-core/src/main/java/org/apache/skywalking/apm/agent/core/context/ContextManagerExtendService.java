@@ -55,6 +55,12 @@ public class ContextManagerExtendService implements BootService {
         IgnoredTracerContext.ListenerManager.add(manager);
     }
 
+    /**
+     * 创建 TracerContext
+     * @param operationName
+     * @param forceSampling
+     * @return
+     */
     public AbstractTracerContext createTraceContext(String operationName, boolean forceSampling) {
         AbstractTracerContext context;
         int suffixIdx = operationName.lastIndexOf(".");
@@ -62,9 +68,11 @@ public class ContextManagerExtendService implements BootService {
             context = new IgnoredTracerContext();
         } else {
             SamplingService samplingService = ServiceManager.INSTANCE.findService(SamplingService.class);
+            // 通过 samplingService 的 samplingFactorHolder 决定是否采样
             if (forceSampling || samplingService.trySampling()) {
                 context = new TracingContext();
             } else {
+                // IgnoredTracerContext 是个空实现，不会记录 Trace 信息
                 context = new IgnoredTracerContext();
             }
         }

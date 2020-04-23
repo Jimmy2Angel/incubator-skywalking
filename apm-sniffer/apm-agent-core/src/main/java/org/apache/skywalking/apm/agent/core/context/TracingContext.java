@@ -416,6 +416,7 @@ public class TracingContext implements AbstractTracerContext {
         }
 
         if (activeSpanStack.isEmpty()) {
+            // 当关闭最后一个 span 时，关闭相应的 TraceSegment，并通知所有的 TracingContextListener
             this.finish();
         }
     }
